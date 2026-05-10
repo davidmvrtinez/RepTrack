@@ -13,7 +13,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -8118,6 +8118,7 @@ function BarcodeScanner({ bin, mode, onAdd, onRemove, onClose, gtinMap, onSaveGt
     let active=true;
     (async()=>{
       try {
+        if(typeof ZXing==='undefined'||!ZXing.BrowserMultiFormatReader){setCamError('Scanner library failed to load. Please refresh the page and try again.');return;}
         const hints=new Map();
         const fmts=ZXing&&ZXing.BarcodeFormat?[ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.CODE_39,ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.QR_CODE,ZXing.BarcodeFormat.DATA_MATRIX]:[];
         if(fmts.length) hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,fmts);
@@ -8511,7 +8512,7 @@ function BinCard({ binName, list, location, parItems, allInventory, cases, onDel
   function deleteSelected(){if(!window.confirm(`Delete ${selected.size} item${selected.size>1?'s':''}?`))return;selected.forEach(id=>onRemove(id));setSelected(new Set());}
   function startEdit(item){setEditingId(item.id);setEditForm({productNumber:item.productNumber||'',lot:item.lot||'',expDate:item.expDate||'',qty:item.qty||1});}
   function saveEdit(){onUpdate(editingId,editForm);setEditingId(null);}
-  function openParEditor(){setMenuOpen(false);const rows=(parItems||[]).map(p=>({ref:p.ref||'',desc:p.desc||'',parQty:p.parQty||1}));setParEditorRows(rows.length?rows:[{ref:'',desc:'',parQty:1}]);setParEditorOpen(true);}
+  function openParEditor(){setMenuOpen(false);const rows=(parItems||[]).map(p=>{const ref=(p.ref||'').trim().toUpperCase();const desc=p.desc||CATALOG[ref]||'';return {ref:p.ref||'',desc,parQty:p.parQty||1};});setParEditorRows(rows.length?rows:[{ref:'',desc:'',parQty:1}]);setParEditorOpen(true);}
   function saveParEditor(){const cleaned=parEditorRows.filter(r=>r.ref.trim()).map(r=>({ref:r.ref.trim().toUpperCase(),desc:r.desc.trim(),parQty:Math.max(1,Number(r.parQty)||1)}));if(onSaveParLevel)onSaveParLevel(binName,cleaned);setParEditorOpen(false);}
 
   return (
@@ -8901,6 +8902,7 @@ function BinQRScannerPanel({ inventory, binLocations, binIds, onUpdateBinLocatio
     navigator.geolocation&&navigator.geolocation.watchPosition(pos=>{coordsRef.current={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};setGpsStatus(`📍 GPS: ±${Math.round(pos.coords.accuracy)}m`);},{},{ enableHighAccuracy:true,maximumAge:5000 });
     (async()=>{
       try{
+        if(typeof ZXing==='undefined'||!ZXing.BrowserMultiFormatReader){setCamError('Scanner library failed to load. Please refresh and try again.');return;}
         const hints=new Map();
         if(ZXing&&ZXing.BarcodeFormat){hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.QR_CODE]);hints.set(ZXing.DecodeHintType.TRY_HARDER,true);}
         const reader=new ZXing.BrowserMultiFormatReader(hints);readerRef.current=reader;
