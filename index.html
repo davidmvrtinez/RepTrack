@@ -8028,16 +8028,17 @@ async function reverseGeocode(lat,lng) {
 }
 
 // ── Login Screen ──────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin, onSignup, loading, error }) {
+function LoginScreen({ onLogin, onSignup, onForgotPassword, loading, error }) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode]         = useState('login');
+  const [mode, setMode]         = useState('login'); // 'login' | 'signup' | 'forgot'
   const [info, setInfo]         = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault(); setInfo('');
     if (mode==='login') { onLogin(email, password); }
-    else { onSignup(email, password, msg => setInfo(msg)); }
+    else if (mode==='signup') { onSignup(email, password, msg => setInfo(msg)); }
+    else { onForgotPassword(email, msg => setInfo(msg)); }
   }
 
   return (
@@ -8046,21 +8047,30 @@ function LoginScreen({ onLogin, onSignup, loading, error }) {
         <div style={{textAlign:'center',marginBottom:4}}>
           <div style={{fontSize:36,marginBottom:6}}>📦</div>
           <h1>MedRep Inventory</h1>
-          <p style={{marginTop:6}}>{mode==='login'?'Sign in to access your inventory.':'Create your account to get started.'}</p>
+          <p style={{marginTop:6}}>
+            {mode==='login'?'Sign in to access your inventory.':mode==='signup'?'Create your account to get started.':'Enter your email and we\'ll send a reset link.'}
+          </p>
         </div>
         <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:10}}>
           <div><label>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoFocus/></div>
-          <div><label>Password</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Min 8 characters':'Password'} required minLength={mode==='signup'?8:undefined}/></div>
+          {mode!=='forgot' && (
+            <div><label>Password</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Min 8 characters':'Password'} required minLength={mode==='signup'?8:undefined}/></div>
+          )}
           {error && <div className="alert alert-red">{error}</div>}
           {info  && <div className="alert alert-green">{info}</div>}
           <button type="submit" className="btn btn-primary" disabled={loading} style={{marginTop:4}}>
-            {loading ? '⏳ Please wait…' : mode==='login' ? '🔐 Sign In' : '✨ Create Account'}
+            {loading ? '⏳ Please wait…' : mode==='login' ? '🔐 Sign In' : mode==='signup' ? '✨ Create Account' : '📧 Send Reset Link'}
           </button>
         </form>
+        {mode==='login' && (
+          <p style={{textAlign:'center',fontSize:13,color:'#6b7280'}}>
+            <span style={{color:'#2563eb',cursor:'pointer',fontWeight:600}} onClick={()=>{setMode('forgot');setInfo('');}}>Forgot password?</span>
+          </p>
+        )}
         <p style={{textAlign:'center',fontSize:13,color:'#6b7280'}}>
-          {mode==='login'?'No account? ':'Have an account? '}
-          <span style={{color:'#2563eb',cursor:'pointer',fontWeight:700}} onClick={()=>{setMode(m=>m==='login'?'signup':'login');setInfo('');}}>
-            {mode==='login'?'Sign up':'Sign in'}
+          {mode==='login'?'No account? ': mode==='signup'?'Have an account? ':'Remember your password? '}
+          <span style={{color:'#2563eb',cursor:'pointer',fontWeight:700}} onClick={()=>{setMode(m=>m==='signup'?'login':'signup');setInfo('');}}>
+            {mode==='login'?'Sign up': mode==='signup'?'Sign in':'Sign in'}
           </span>
         </p>
         <p style={{textAlign:'center',fontSize:11,color:'#94a3b8',lineHeight:1.5}}>
@@ -9032,6 +9042,16 @@ function App() {
     setInfo('✅ Account created! Check your email to confirm, then sign in.');
     setLoginLoading(false);
   }
+  async function handleForgotPassword(email, setInfo) {
+    setLoginLoading(true); setLoginError('');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href
+    });
+    if (error) { setLoginError(error.message); }
+    else { setInfo('✅ Reset link sent! Check your email.'); }
+    setLoginLoading(false);
+  }
+
   async function handleSignOut() {
     if(!confirm('Sign out?')) return;
     await supabase.auth.signOut();
@@ -9167,7 +9187,7 @@ function App() {
   const allBins=[...new Set([...(data.bins||[]),...(data.inventory||[]).map(i=>i.bin).filter(Boolean)])].sort();
 
   if(!initialized) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:12,background:'#f0f4f8'}}><div style={{fontSize:48}}>📦</div><p style={{color:'#94a3b8',fontSize:15}}>Loading…</p></div>;
-  if(!user) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} loading={loginLoading} error={loginError}/>;
+  if(!user) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} onForgotPassword={handleForgotPassword} loading={loginLoading} error={loginError}/>;
 
   const tabs=[
     {id:'add',label:'🏠 Home'},
