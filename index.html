@@ -8475,6 +8475,9 @@ function BinCard({ binName, list, location, parItems, allInventory, cases, onDel
   const [newName,setNewName]         = useState('');
   const [parEditorOpen,setParEditorOpen] = useState(false);
   const [parEditorRows,setParEditorRows] = useState([]);
+  const [parSearch,setParSearch]         = useState('');
+  const [parResults,setParResults]       = useState([]);
+  const [parSearchFocused,setParSearchFocused] = useState(false);
 
   const isEmpty    = list.length===0;
   const allSelected = list.length>0&&selected.size===list.length;
@@ -8595,7 +8598,57 @@ function BinCard({ binName, list, location, parItems, allInventory, cases, onDel
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'16px 12px',overflowY:'auto'}}>
           <div style={{background:'#1e293b',borderRadius:16,padding:20,width:'100%',maxWidth:560,boxShadow:'0 20px 60px rgba(0,0,0,.6)',marginTop:20}}>
             <div style={{color:'#f1f5f9',fontWeight:800,fontSize:17,marginBottom:4}}>⚖️ Par Levels — {binName}</div>
-            <div style={{color:'#94a3b8',fontSize:13,marginBottom:16}}>Set required quantity per REF. Alerts fire when current stock falls below par.</div>
+            <div style={{color:'#94a3b8',fontSize:13,marginBottom:12}}>Search implants to add, then set the quantity.</div>
+
+            {/* Search to add implants */}
+            <div style={{position:'relative',marginBottom:16}}>
+              <input
+                value={parSearch}
+                onChange={e=>{
+                  const q=e.target.value;
+                  setParSearch(q);
+                  if(q.trim().length<2){setParResults([]);return;}
+                  const ql=q.toLowerCase();
+                  const matches=Object.entries(CATALOG)
+                    .filter(([ref,name])=>name.toLowerCase().includes(ql)||ref.toLowerCase().includes(ql))
+                    .slice(0,30)
+                    .map(([ref,name])=>({ref,name}));
+                  setParResults(matches);
+                }}
+                onFocus={()=>setParSearchFocused(true)}
+                onBlur={()=>setTimeout(()=>setParSearchFocused(false),200)}
+                placeholder="🔍 Search by name or REF (e.g. torx, glenosphere, 508-65…)"
+                style={{width:'100%',background:'#0f172a',border:'1.5px solid #3b82f6',borderRadius:9,padding:'10px 13px',color:'#f1f5f9',fontSize:14}}
+              />
+              {parSearchFocused && parResults.length>0 && (
+                <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:'#1e293b',border:'1px solid #334155',borderRadius:10,maxHeight:240,overflowY:'auto',zIndex:300,boxShadow:'0 8px 28px rgba(0,0,0,.6)'}}>
+                  {parResults.map((r,i)=>(
+                    <div key={i}
+                      onMouseDown={()=>{
+                        // Don't add if already in list
+                        const already=parEditorRows.some(row=>row.ref.trim().toUpperCase()===r.ref.trim().toUpperCase());
+                        if(already){setParSearch('');setParResults([]);return;}
+                        setParEditorRows(rows=>[...rows,{ref:r.ref,desc:r.name,parQty:1}]);
+                        setParSearch('');setParResults([]);
+                      }}
+                      style={{padding:'10px 14px',cursor:'pointer',borderBottom:i<parResults.length-1?'1px solid #0f172a':'none',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}
+                      onMouseEnter={e=>e.currentTarget.style.background='#1e3a5f'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                    >
+                      <div style={{minWidth:0}}>
+                        <div style={{color:'#f1f5f9',fontWeight:700,fontSize:13}}>{r.name}</div>
+                        <div style={{color:'#60a5fa',fontSize:11,marginTop:2,fontFamily:'monospace'}}>{r.ref}</div>
+                      </div>
+                      <span style={{color:'#22c55e',fontSize:18,flexShrink:0}}>＋</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {parSearchFocused && parSearch.trim().length>=2 && parResults.length===0 && (
+                <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:'#1e293b',border:'1px solid #334155',borderRadius:10,padding:'12px 14px',color:'#64748b',fontSize:13,zIndex:300}}>No matches found</div>
+              )}
+            </div>
+
             <div style={{display:'grid',gridTemplateColumns:'1fr 2fr 70px 36px',gap:6,marginBottom:6,padding:'0 2px'}}>
               <div style={{fontSize:11,fontWeight:700,color:'#64748b',letterSpacing:.4}}>REF</div>
               <div style={{fontSize:11,fontWeight:700,color:'#64748b',letterSpacing:.4}}>DESCRIPTION</div>
@@ -8605,8 +8658,8 @@ function BinCard({ binName, list, location, parItems, allInventory, cases, onDel
             <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'55vh',overflowY:'auto',paddingRight:2}}>
               {parEditorRows.map((row,idx)=>(
                 <div key={idx} style={{display:'grid',gridTemplateColumns:'1fr 2fr 70px 36px',gap:6,alignItems:'center'}}>
-                  <input value={row.ref} onChange={e=>setParEditorRows(rows=>rows.map((r,i)=>i===idx?{...r,ref:e.target.value}:r))} placeholder="REF" style={{background:'#0f172a',border:'1.5px solid #334155',borderRadius:7,padding:'8px 9px',color:'#f1f5f9',fontSize:13,width:'100%'}}/>
-                  <input value={row.desc} onChange={e=>setParEditorRows(rows=>rows.map((r,i)=>i===idx?{...r,desc:e.target.value}:r))} placeholder="Description (optional)" style={{background:'#0f172a',border:'1.5px solid #334155',borderRadius:7,padding:'8px 9px',color:'#f1f5f9',fontSize:13,width:'100%'}}/>
+                  <input value={row.ref} onChange={e=>{const ref=e.target.value;setParEditorRows(rows=>rows.map((r,i)=>{if(i!==idx)return r;const autoDesc=CATALOG[ref.trim().toUpperCase()]||CATALOG[ref.trim()]||'';return {...r,ref,desc:r.desc||autoDesc};}));}} onBlur={e=>{const ref=e.target.value.trim().toUpperCase();setParEditorRows(rows=>rows.map((r,i)=>{if(i!==idx)return r;const autoDesc=CATALOG[ref]||CATALOG[ref.toLowerCase()]||'';return {...r,ref,desc:r.desc||autoDesc};}));}} placeholder="REF" style={{background:'#0f172a',border:'1.5px solid #334155',borderRadius:7,padding:'8px 9px',color:'#f1f5f9',fontSize:13,width:'100%'}}/>
+                  <input value={row.desc} onChange={e=>setParEditorRows(rows=>rows.map((r,i)=>i===idx?{...r,desc:e.target.value}:r))} placeholder="Description (auto-fills from REF)" style={{background:'#0f172a',border:'1.5px solid #334155',borderRadius:7,padding:'8px 9px',color:row.desc?'#f1f5f9':'#64748b',fontSize:13,width:'100%'}}/>
                   <input type="number" min="1" value={row.parQty} onChange={e=>setParEditorRows(rows=>rows.map((r,i)=>i===idx?{...r,parQty:e.target.value}:r))} style={{background:'#0f172a',border:'1.5px solid #334155',borderRadius:7,padding:'8px 6px',color:'#f1f5f9',fontSize:13,width:'100%',textAlign:'center'}}/>
                   <button onClick={()=>setParEditorRows(rows=>rows.filter((_,i)=>i!==idx))} style={{background:'#7f1d1d',border:'none',color:'#fca5a5',borderRadius:7,padding:'8px',cursor:'pointer',fontSize:14,fontWeight:700,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                 </div>
