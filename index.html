@@ -9121,7 +9121,7 @@ function SettingsTab({ userCatalog, onSaveUserCatalog, onClearUserCatalog }) {
   return (
     <div style={{padding:'16px 12px',maxWidth:640,margin:'0 auto'}}>
       <div style={{fontSize:20,fontWeight:800,color:'#1e293b',marginBottom:4}}>⚙️ Settings</div>
-      <div style={{fontSize:13,color:'#64748b',marginBottom:16}}>Customize your product catalog so barcode scans and par levels work with your company\'s implants.</div>
+      <div style={{fontSize:13,color:'#64748b',marginBottom:16}}>Customize your product catalog so barcode scans and par levels work with your company implants.</div>
 
       {/* Nav */}
       <div style={{display:'flex',gap:4,background:'#e2e8f0',padding:4,borderRadius:10,marginBottom:16}}>
@@ -9151,10 +9151,10 @@ function SettingsTab({ userCatalog, onSaveUserCatalog, onClearUserCatalog }) {
             <div style={{fontWeight:700,fontSize:15,marginBottom:10,color:'#1e293b'}}>How it works</div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {[
-                ['📥','Import a CSV','Upload a spreadsheet with your company\'s products (REF + Product Name, optionally GTIN). Works with any manufacturer.'],
+                ['📥','Import a CSV','Upload a CSV with REF and Product Name columns (GTIN optional). Works with any manufacturer.'],
                 ['🔍','Scans auto-fill','When you scan a barcode, your catalog is checked first. If found, the REF and name fill in automatically.'],
                 ['✏️','Edit names','Shorten or rename any product description so it fits neatly in your bins view.'],
-                ['🏢','Company-agnostic','Stryker, Zimmer, Smith+Nephew, Arthrex — any company\'s products work once you import your catalog.'],
+                ['🏢','Any manufacturer','Stryker, Zimmer, Smith+Nephew, Arthrex — import any catalog and scans work automatically.'],
               ].map(([icon,title,desc])=>(
                 <div key={title} style={{display:'flex',gap:12,alignItems:'flex-start'}}>
                   <span style={{fontSize:20,flexShrink:0,marginTop:1}}>{icon}</span>
@@ -9182,9 +9182,7 @@ function SettingsTab({ userCatalog, onSaveUserCatalog, onClearUserCatalog }) {
           <div style={s.card}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:4,color:'#1e293b'}}>📋 Or paste CSV text</div>
             <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Copy from Excel, Google Sheets, or any spreadsheet and paste below.</div>
-            <textarea value={importText} onChange={e=>setImportText(e.target.value)} placeholder={"REF,Product Name,GTIN
-508-65-025,Torx Screw 6.5mm,00888668000001
-510-40-030,Cortical Screw 4.0mm,00888668000002"} rows={6} style={{width:'100%',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:8,padding:'10px',fontSize:12,fontFamily:'monospace',color:'#1e293b',resize:'vertical'}}/>
+            <textarea value={importText} onChange={e=>setImportText(e.target.value)} placeholder="REF,Product Name,GTIN&#10;508-65-025,Torx Screw 6.5mm,00888668000001&#10;510-40-030,Cortical Screw 4.0mm,00888668000002" rows={6} style={{width:'100%',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:8,padding:'10px',fontSize:12,fontFamily:'monospace',color:'#1e293b',resize:'vertical'}}/>
             <button onClick={handlePastePreview} style={{width:'100%',marginTop:8,background:'#1e3a5f',color:'#60a5fa',border:'1.5px solid #3b82f6',borderRadius:8,padding:'10px',fontWeight:700,fontSize:13,cursor:'pointer'}}>Preview Import</button>
           </div>
 
