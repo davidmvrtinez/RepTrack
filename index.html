@@ -8280,6 +8280,7 @@ function AddTab({ onAdd, onRemoveManual, inventory, bins, binLocations, onStartS
   const [remSurgeon,setRemSurgeon] = useState('');
   const [remDate,setRemDate]       = useState(new Date().toISOString().slice(0,10));
   const remInputRef = useRef(null);
+  const [scanErr,setScanErr]     = useState('');
 
   const getActiveScanBin = () => scanBin==='__new__'?scanCustomBin.toUpperCase().trim():scanBin;
   const getManualBin     = () => manBin==='__new__'?manCustomBin.toUpperCase().trim():manBin.toUpperCase().trim();
@@ -8323,11 +8324,13 @@ function AddTab({ onAdd, onRemoveManual, inventory, bins, binLocations, onStartS
         </div>
         <div style={{marginBottom:12}}>
           <label>{scanMode==='add'?'Select Bin to Scan Into':'Select Bin to Remove From'}</label>
-          <BinSelector value={scanBin} onChange={setScanBin} bins={bins} customValue={scanCustomBin} onCustomChange={setScanCustomBin}/>
+          <BinSelector value={scanBin} onChange={v=>{setScanBin(v);setScanErr('');}} bins={bins} customValue={scanCustomBin} onCustomChange={setScanCustomBin}/>
         </div>
-        <button type="button" className="btn btn-primary" style={{background:scanMode==='add'?'#16a34a':'#dc2626',fontSize:16}} onClick={()=>{
+        {scanErr&&<div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,padding:'9px 12px',color:'#991b1b',fontSize:13,fontWeight:600,marginBottom:8}}>⚠️ {scanErr}</div>}
+        <button type="button" className="btn btn-primary" style={{background:getActiveScanBin()?(scanMode==='add'?'#16a34a':'#dc2626'):'#94a3b8',fontSize:16,opacity:getActiveScanBin()?1:.7}} onClick={()=>{
           const b=getActiveScanBin();
-          if(!b){alert('Please select or create a bin first.');return;}
+          if(!b){setScanErr('Please select a bin first.');return;}
+          setScanErr('');
           if(scanMode==='remove'){setPendingBin(b);setCaseDate(new Date().toISOString().slice(0,10));setShowCaseModal(true);}
           else{onStartScan(b,scanMode);}
         }}>📷 Start Scanning</button>
@@ -8348,7 +8351,7 @@ function AddTab({ onAdd, onRemoveManual, inventory, bins, binLocations, onStartS
             </div>
             <div style={{display:'flex',gap:10}}>
               <button onClick={()=>{setShowCaseModal(false);setCaseSurgeon('');setSelectedBins([]);}} style={{flex:1,background:'#334155',border:'none',color:'#f1f5f9',borderRadius:8,padding:'12px 0',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancel</button>
-              <button onClick={()=>{if(!caseSurgeon.trim()){alert('Please enter a surgeon name.');return;}setShowCaseModal(false);onStartScan('__case__','remove',caseSurgeon.trim(),caseDate,selectedBins);setCaseSurgeon('');setSelectedBins([]);}} style={{flex:1,background:'#dc2626',border:'none',color:'#fff',borderRadius:8,padding:'12px 0',fontWeight:700,fontSize:14,cursor:'pointer'}}>📷 Start Scanning</button>
+              <button onClick={()=>{if(!caseSurgeon.trim()){return;}setShowCaseModal(false);onStartScan('__case__','remove',caseSurgeon.trim(),caseDate,selectedBins);setCaseSurgeon('');setSelectedBins([]);}} style={{flex:1,background:'#dc2626',border:'none',color:'#fff',borderRadius:8,padding:'12px 0',fontWeight:700,fontSize:14,cursor:'pointer'}}>📷 Start Scanning</button>
             </div>
           </div>
         </div>
@@ -8899,7 +8902,7 @@ function BinQRScannerPanel({ inventory, binLocations, binIds, onUpdateBinLocatio
 
   useEffect(()=>{
     let active=true;
-    navigator.geolocation&&navigator.geolocation.watchPosition(pos=>{coordsRef.current={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};setGpsStatus(`📍 GPS: ±${Math.round(pos.coords.accuracy)}m`);},{},{ enableHighAccuracy:true,maximumAge:5000 });
+    try{navigator.geolocation&&navigator.geolocation.watchPosition(pos=>{coordsRef.current={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};setGpsStatus(`📍 GPS: ±${Math.round(pos.coords.accuracy)}m`);},()=>{},{enableHighAccuracy:true,maximumAge:5000});}catch(_){}
     (async()=>{
       try{
         if(typeof ZXing==='undefined'||!ZXing.BrowserMultiFormatReader){setCamError('Scanner library failed to load. Please refresh and try again.');return;}
